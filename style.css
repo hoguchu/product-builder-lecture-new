@@ -3,12 +3,29 @@
 :root {
   --font-display: "Fraunces", "Times New Roman", serif;
   --font-body: "Space Grotesk", "Helvetica Neue", Arial, sans-serif;
-  --bg-deep: #0f172a;
-  --bg-mid: #1e293b;
-  --bg-glow: #f8fafc;
-  --card-bg: rgba(255, 255, 255, 0.9);
-  --card-border: rgba(148, 163, 184, 0.35);
-  --shadow-strong: 0 30px 60px rgba(15, 23, 42, 0.25);
+  --bg-base: #f8fafc;
+  --bg-accent: #e2e8f0;
+  --bg-spot-1: rgba(56, 189, 248, 0.25);
+  --bg-spot-2: rgba(244, 114, 182, 0.2);
+  --bg-spot-3: rgba(148, 163, 184, 0.35);
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --card-bg: rgba(255, 255, 255, 0.92);
+  --card-border: rgba(148, 163, 184, 0.4);
+  --shadow-strong: 0 30px 60px rgba(15, 23, 42, 0.18);
+}
+
+body[data-theme="dark"] {
+  --bg-base: #0f172a;
+  --bg-accent: #1e293b;
+  --bg-spot-1: rgba(56, 189, 248, 0.2);
+  --bg-spot-2: rgba(244, 114, 182, 0.25);
+  --bg-spot-3: rgba(248, 250, 252, 0.2);
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5f5;
+  --card-bg: rgba(15, 23, 42, 0.86);
+  --card-border: rgba(148, 163, 184, 0.25);
+  --shadow-strong: 0 30px 60px rgba(2, 6, 23, 0.5);
 }
 
 * {
@@ -19,12 +36,13 @@ body {
   margin: 0;
   min-height: 100vh;
   font-family: var(--font-body);
-  color: #0f172a;
+  color: var(--text-primary);
   background:
-    radial-gradient(circle at 15% 20%, rgba(248, 250, 252, 0.9), transparent 40%),
-    radial-gradient(circle at 80% 10%, rgba(244, 114, 182, 0.3), transparent 45%),
-    radial-gradient(circle at 85% 85%, rgba(56, 189, 248, 0.25), transparent 45%),
-    linear-gradient(135deg, var(--bg-deep), var(--bg-mid));
+    radial-gradient(circle at 15% 20%, var(--bg-spot-3), transparent 45%),
+    radial-gradient(circle at 80% 10%, var(--bg-spot-2), transparent 45%),
+    radial-gradient(circle at 85% 85%, var(--bg-spot-1), transparent 45%),
+    linear-gradient(135deg, var(--bg-base), var(--bg-accent));
+  transition: background 0.4s ease, color 0.4s ease;
 }
 
 .page {
