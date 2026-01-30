@@ -23,7 +23,10 @@ class LotteryGenerator extends HTMLElement {
 
         .topbar {
           display: flex;
+          align-items: center;
           justify-content: flex-end;
+          gap: 10px;
+          flex-wrap: wrap;
         }
 
         .card {
@@ -118,7 +121,8 @@ class LotteryGenerator extends HTMLElement {
           transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
         }
 
-        .theme-toggle {
+        .theme-toggle,
+        .lang-toggle {
           background: rgba(148, 163, 184, 0.2);
           color: var(--text-primary, #0f172a);
           border: 1px solid rgba(148, 163, 184, 0.35);
@@ -127,7 +131,8 @@ class LotteryGenerator extends HTMLElement {
           box-shadow: 0 10px 20px rgba(15, 23, 42, 0.15);
         }
 
-        .theme-toggle:hover:not(:disabled) {
+        .theme-toggle:hover:not(:disabled),
+        .lang-toggle:hover:not(:disabled) {
           transform: translateY(-1px);
           background: rgba(148, 163, 184, 0.35);
         }
@@ -229,26 +234,27 @@ class LotteryGenerator extends HTMLElement {
       </style>
       <div class="shell">
         <div class="topbar">
-          <button class="theme-toggle" type="button" aria-pressed="false">다크 모드</button>
+          <button class="theme-toggle" type="button" aria-pressed="false">Dark mode</button>
+          <button class="lang-toggle" type="button">한국어</button>
         </div>
         <section class="card">
           <div class="header">
             <span class="badge">K-Lotto 6/45</span>
-            <h1>로또 번호 생성기</h1>
-            <p class="subtitle">생성 버튼을 누르면 1부터 45까지 중 6개의 번호를 뽑아드립니다. 기록은 자동으로 저장됩니다.</p>
+            <h1 class="title">Lotto Number Generator</h1>
+            <p class="subtitle">Generate six numbers between 1 and 45. Your recent draws are saved automatically.</p>
           </div>
           <div class="numbers" aria-live="polite"></div>
           <div class="actions">
-            <button class="primary" type="button">번호 생성</button>
-            <button class="ghost" type="button" data-action="batch">자동 5회</button>
-            <button class="ghost" type="button" data-action="copy">번호 복사</button>
+            <button class="primary" type="button" data-label="generate">Generate numbers</button>
+            <button class="ghost" type="button" data-action="batch" data-label="batch">Auto x5</button>
+            <button class="ghost" type="button" data-action="copy" data-label="copy">Copy numbers</button>
           </div>
           <div class="meta">
-            <span>생성 횟수: <strong class="draw-count">0</strong></span>
-            <span>마지막 생성: <strong class="last-generated">-</strong></span>
+            <span><span class="draw-label">Draw count</span>: <strong class="draw-count">0</strong></span>
+            <span><span class="last-label">Last draw</span>: <strong class="last-generated">-</strong></span>
           </div>
           <div class="history">
-            <h2>최근 기록</h2>
+            <h2 class="history-title">Recent history</h2>
             <ol class="history-list"></ol>
           </div>
         </section>
@@ -260,17 +266,65 @@ class LotteryGenerator extends HTMLElement {
     this.batchButton = this.shadowRoot.querySelector("[data-action='batch']");
     this.copyButton = this.shadowRoot.querySelector("[data-action='copy']");
     this.themeToggle = this.shadowRoot.querySelector(".theme-toggle");
+    this.langToggle = this.shadowRoot.querySelector(".lang-toggle");
+    this.titleEl = this.shadowRoot.querySelector(".title");
+    this.subtitleEl = this.shadowRoot.querySelector(".subtitle");
+    this.drawLabelEl = this.shadowRoot.querySelector(".draw-label");
+    this.lastLabelEl = this.shadowRoot.querySelector(".last-label");
+    this.historyTitleEl = this.shadowRoot.querySelector(".history-title");
     this.drawCountEl = this.shadowRoot.querySelector(".draw-count");
     this.lastGeneratedEl = this.shadowRoot.querySelector(".last-generated");
     this.historyList = this.shadowRoot.querySelector(".history-list");
+    this.actionButtons = Array.from(this.shadowRoot.querySelectorAll("[data-label]"));
+
+    this.translations = {
+      en: {
+        title: "Lotto Number Generator",
+        subtitle: "Generate six numbers between 1 and 45. Your recent draws are saved automatically.",
+        generate: "Generate numbers",
+        batch: "Auto x5",
+        copy: "Copy numbers",
+        copySuccess: "Copied!",
+        copyFail: "Copy failed",
+        copyIdle: "Copy numbers",
+        drawLabel: "Draw count",
+        lastLabel: "Last draw",
+        historyTitle: "Recent history",
+        historyPrefix: "Draw",
+        themeDark: "Dark mode",
+        themeLight: "Light mode",
+        langToggle: "한국어",
+        timeLocale: "en-US",
+      },
+      ko: {
+        title: "로또 번호 생성기",
+        subtitle: "1부터 45까지 6개의 번호를 생성합니다. 최근 기록은 자동으로 저장됩니다.",
+        generate: "번호 생성",
+        batch: "자동 5회",
+        copy: "번호 복사",
+        copySuccess: "복사 완료!",
+        copyFail: "복사 실패",
+        copyIdle: "번호 복사",
+        drawLabel: "생성 횟수",
+        lastLabel: "마지막 생성",
+        historyTitle: "최근 기록",
+        historyPrefix: "회차",
+        themeDark: "다크 모드",
+        themeLight: "라이트 모드",
+        langToggle: "English",
+        timeLocale: "ko-KR",
+      },
+    };
 
     this.renderBalls();
     this.generateButton.addEventListener("click", () => this.generateOnce());
     this.batchButton.addEventListener("click", () => this.generateBatch(5));
     this.copyButton.addEventListener("click", () => this.copyNumbers());
     this.themeToggle.addEventListener("click", () => this.toggleTheme());
+    this.langToggle.addEventListener("click", () => this.toggleLanguage());
 
     this.syncTheme();
+    this.syncLanguage();
 
     this.generateOnce();
   }
@@ -340,7 +394,7 @@ class LotteryGenerator extends HTMLElement {
   updateMeta() {
     this.drawCountEl.textContent = this.drawCount.toString();
     if (this.lastGenerated) {
-      const time = this.lastGenerated.toLocaleTimeString("ko-KR", {
+      const time = this.lastGenerated.toLocaleTimeString(this.getLocale(), {
         hour: "2-digit",
         minute: "2-digit",
       });
@@ -349,7 +403,7 @@ class LotteryGenerator extends HTMLElement {
   }
 
   pushHistory(numbers) {
-    const time = new Date().toLocaleTimeString("ko-KR", {
+    const time = new Date().toLocaleTimeString(this.getLocale(), {
       hour: "2-digit",
       minute: "2-digit",
     });
@@ -366,8 +420,9 @@ class LotteryGenerator extends HTMLElement {
       const li = document.createElement("li");
       li.classList.add("history-item");
       const numbersText = item.numbers.map((n) => n.toString().padStart(2, "0")).join(" · ");
+      const prefix = this.t("historyPrefix");
       li.innerHTML = `
-        <span>#${this.history.length - index} ${numbersText}</span>
+        <span>${prefix} ${this.history.length - index} ${numbersText}</span>
         <span class="history-time">${item.time}</span>
       `;
       this.historyList.appendChild(li);
@@ -379,12 +434,12 @@ class LotteryGenerator extends HTMLElement {
     const text = this.lastNumbers.map((n) => n.toString().padStart(2, "0")).join(" ");
     try {
       await navigator.clipboard.writeText(text);
-      this.copyButton.textContent = "복사 완료!";
+      this.copyButton.textContent = this.t("copySuccess");
     } catch (error) {
-      this.copyButton.textContent = "복사 실패";
+      this.copyButton.textContent = this.t("copyFail");
     }
     setTimeout(() => {
-      this.copyButton.textContent = "번호 복사";
+      this.copyButton.textContent = this.t("copyIdle");
     }, 1200);
   }
 
@@ -411,8 +466,45 @@ class LotteryGenerator extends HTMLElement {
   applyTheme(theme) {
     document.body.dataset.theme = theme;
     const isDark = theme === "dark";
-    this.themeToggle.textContent = isDark ? "라이트 모드" : "다크 모드";
+    this.themeToggle.textContent = isDark ? this.t("themeLight") : this.t("themeDark");
     this.themeToggle.setAttribute("aria-pressed", isDark ? "true" : "false");
+  }
+
+  syncLanguage() {
+    const saved = localStorage.getItem("lang");
+    const language = saved || "en";
+    this.applyLanguage(language);
+  }
+
+  toggleLanguage() {
+    const next = this.language === "ko" ? "en" : "ko";
+    this.applyLanguage(next);
+    localStorage.setItem("lang", next);
+  }
+
+  applyLanguage(language) {
+    this.language = this.translations[language] ? language : "en";
+    this.titleEl.textContent = this.t("title");
+    this.subtitleEl.textContent = this.t("subtitle");
+    this.drawLabelEl.textContent = this.t("drawLabel");
+    this.lastLabelEl.textContent = this.t("lastLabel");
+    this.historyTitleEl.textContent = this.t("historyTitle");
+    this.actionButtons.forEach((button) => {
+      const key = button.dataset.label;
+      if (key) button.textContent = this.t(key);
+    });
+    this.langToggle.textContent = this.t("langToggle");
+    this.applyTheme(document.body.dataset.theme || "light");
+    this.updateMeta();
+    this.renderHistory();
+  }
+
+  t(key) {
+    return this.translations[this.language || "en"][key] || "";
+  }
+
+  getLocale() {
+    return this.t("timeLocale") || "en-US";
   }
 }
 
