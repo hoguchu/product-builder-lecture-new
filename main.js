@@ -179,8 +179,8 @@ class LotteryGenerator extends HTMLElement {
           gap: 16px;
           padding: 18px;
           border-radius: 18px;
-          background: rgba(248, 250, 252, 0.75);
-          border: 1px dashed rgba(148, 163, 184, 0.5);
+          background: var(--card-bg, rgba(255, 255, 255, 0.92));
+          border: 1px solid var(--card-border, rgba(148, 163, 184, 0.4));
         }
 
         .dinner-main {
@@ -243,7 +243,8 @@ class LotteryGenerator extends HTMLElement {
         .alt-item {
           padding: 12px 14px;
           border-radius: 14px;
-          background: rgba(241, 245, 249, 0.6);
+          background: var(--card-bg, rgba(255, 255, 255, 0.92));
+          border: 1px solid var(--card-border, rgba(148, 163, 184, 0.4));
           display: grid;
           gap: 6px;
         }
@@ -346,7 +347,8 @@ class LotteryGenerator extends HTMLElement {
           gap: 16px;
           padding: 10px 14px;
           border-radius: 12px;
-          background: rgba(241, 245, 249, 0.6);
+          background: var(--card-bg, rgba(255, 255, 255, 0.92));
+          border: 1px solid var(--card-border, rgba(148, 163, 184, 0.4));
         }
 
         .history-item span {
@@ -364,8 +366,8 @@ class LotteryGenerator extends HTMLElement {
           gap: 12px;
           padding: 18px;
           border-radius: 18px;
-          background: rgba(248, 250, 252, 0.7);
-          border: 1px solid rgba(148, 163, 184, 0.4);
+          background: var(--card-bg, rgba(255, 255, 255, 0.92));
+          border: 1px solid var(--card-border, rgba(148, 163, 184, 0.4));
         }
 
         .partner-title {
@@ -403,11 +405,11 @@ class LotteryGenerator extends HTMLElement {
         .field textarea {
           width: 100%;
           border-radius: 12px;
-          border: 1px solid rgba(148, 163, 184, 0.5);
+          border: 1px solid var(--card-border, rgba(148, 163, 184, 0.4));
           padding: 10px 12px;
           font-size: 0.95rem;
           font-family: inherit;
-          background: rgba(248, 250, 252, 0.9);
+          background: var(--card-bg, rgba(255, 255, 255, 0.92));
           color: var(--text-primary, #0f172a);
         }
 
