@@ -558,6 +558,8 @@ class LotteryGenerator extends HTMLElement {
 
     this.viewButtons = Array.from(this.shadowRoot.querySelectorAll(".mode-btn"));
     this.cards = Array.from(this.shadowRoot.querySelectorAll("section.card"));
+    this.disqusWrap = null;
+    this.disqusLoaded = false;
 
     this.dinnerTitleEl = this.shadowRoot.querySelector(".dinner-title");
     this.dinnerSubtitleEl = this.shadowRoot.querySelector(".dinner-subtitle");
@@ -693,6 +695,17 @@ class LotteryGenerator extends HTMLElement {
 
     this.generateOnce();
     this.recommendDinner(1);
+    this.switchView("lotto");
+  }
+
+  connectedCallback() {
+    this.initDisqusWrap();
+  }
+
+  initDisqusWrap() {
+    if (this.disqusWrap) return;
+    this.disqusWrap = document.querySelector(".disqus-wrap");
+    this.syncDisqusVisibility();
   }
 
   renderBalls() {
@@ -923,10 +936,56 @@ class LotteryGenerator extends HTMLElement {
     this.cards.forEach((card) => {
       card.hidden = card.dataset.view !== this.currentView;
     });
+    this.syncDisqusVisibility();
     this.viewButtons.forEach((button) => {
       const pressed = button.dataset.view === this.currentView;
       button.setAttribute("aria-pressed", pressed ? "true" : "false");
     });
+  }
+
+  syncDisqusVisibility() {
+    if (!this.disqusWrap) return;
+    const isDinner = this.currentView === "dinner";
+    this.disqusWrap.hidden = !isDinner;
+    if (!isDinner) return;
+
+    requestAnimationFrame(() => {
+      if (!this.disqusWrap || this.disqusWrap.hidden) return;
+      if (window.DISQUS) {
+        window.DISQUS.reset({
+          reload: true,
+          config: function () {
+            const url = new URL(window.location.href);
+            url.search = "";
+            url.hash = "";
+            this.page.url = url.toString();
+            this.page.identifier = "dinner-menu-recommender";
+          },
+        });
+        return;
+      }
+      this.ensureDisqusLoaded();
+    });
+  }
+
+  ensureDisqusLoaded() {
+    if (this.disqusLoaded) return;
+    const thread = document.getElementById("disqus_thread");
+    if (!thread) return;
+    this.disqusLoaded = true;
+
+    window.disqus_config = function () {
+      const url = new URL(window.location.href);
+      url.search = "";
+      url.hash = "";
+      this.page.url = url.toString();
+      this.page.identifier = "dinner-menu-recommender";
+    };
+
+    const script = document.createElement("script");
+    script.src = "https://product-builder-test.disqus.com/embed.js";
+    script.setAttribute("data-timestamp", Date.now().toString());
+    document.body.appendChild(script);
   }
 
   syncTheme() {
