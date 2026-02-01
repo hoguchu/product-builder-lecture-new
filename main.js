@@ -13,6 +13,10 @@ class LotteryGenerator extends HTMLElement {
     this.dinnerMaxHistory = 6;
     this.lastDinnerTime = null;
     this.currentDinnerSet = [];
+    this.animalModel = null;
+    this.animalImage = null;
+    this.animalModelUrl = "https://teachablemachine.withgoogle.com/models/n0owLZW-x/";
+    this.animalHasResult = false;
 
     this.dinnerMenus = [
       { name: "김치찌개", desc: "얼큰한 국물로 하루 마무리.", tags: ["뜨끈함", "매콤", "집밥"] },
@@ -181,6 +185,132 @@ class LotteryGenerator extends HTMLElement {
           border-radius: 18px;
           background: var(--card-bg, rgba(255, 255, 255, 0.92));
           border: 1px solid var(--card-border, rgba(148, 163, 184, 0.4));
+        }
+
+        .animal-shell {
+          display: grid;
+          gap: 18px;
+        }
+
+        .animal-preview {
+          position: relative;
+          min-height: 220px;
+          border-radius: 20px;
+          border: 1px dashed rgba(148, 163, 184, 0.5);
+          background: rgba(248, 250, 252, 0.9);
+          display: grid;
+          place-items: center;
+          overflow: hidden;
+        }
+
+        .animal-preview img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .animal-placeholder {
+          text-align: center;
+          color: var(--text-secondary, #64748b);
+          font-size: 0.95rem;
+          line-height: 1.4;
+          padding: 18px;
+        }
+
+        .animal-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          align-items: center;
+        }
+
+        .file-input {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          opacity: 0;
+          pointer-events: none;
+        }
+
+        .upload-label {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 16px;
+          border-radius: 999px;
+          border: 1px solid rgba(148, 163, 184, 0.4);
+          background: #fff;
+          font-weight: 600;
+          cursor: pointer;
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .upload-label:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 10px 20px rgba(15, 23, 42, 0.12);
+        }
+
+        :host-context(body[data-theme="dark"]) .upload-label {
+          background: rgba(15, 23, 42, 0.9);
+          color: var(--text-primary, #f8fafc);
+          border-color: rgba(148, 163, 184, 0.5);
+        }
+
+        :host-context(body[data-theme="dark"]) .animal-preview {
+          background: rgba(15, 23, 42, 0.65);
+          border-color: rgba(148, 163, 184, 0.45);
+        }
+
+        :host-context(body[data-theme="dark"]) .animal-placeholder {
+          color: var(--text-secondary, #cbd5f5);
+        }
+
+        :host-context(body[data-theme="dark"]) .animal-actions .ghost {
+          background: rgba(15, 23, 42, 0.7);
+          color: var(--text-primary, #f8fafc);
+          border: 1px solid rgba(148, 163, 184, 0.4);
+        }
+
+        .animal-result {
+          display: grid;
+          gap: 12px;
+        }
+
+        .animal-result-title {
+          margin: 0;
+          font-size: 1.5rem;
+          font-family: "Fraunces", "Times New Roman", serif;
+        }
+
+        .animal-subtitle {
+          margin: 0;
+          color: var(--text-secondary, #475569);
+        }
+
+        .animal-bars {
+          display: grid;
+          gap: 10px;
+        }
+
+        .animal-bar {
+          display: grid;
+          grid-template-columns: 1fr 2fr auto;
+          gap: 10px;
+          align-items: center;
+          font-size: 0.9rem;
+        }
+
+        .animal-track {
+          height: 8px;
+          border-radius: 999px;
+          background: rgba(148, 163, 184, 0.35);
+          overflow: hidden;
+        }
+
+        .animal-fill {
+          height: 100%;
+          background: linear-gradient(120deg, #f59e0b, #f97316);
+          border-radius: 999px;
         }
 
         .dinner-main {
@@ -452,6 +582,9 @@ class LotteryGenerator extends HTMLElement {
             flex-direction: column;
             align-items: flex-start;
           }
+          .animal-bar {
+            grid-template-columns: 1fr;
+          }
         }
       </style>
       <div class="shell">
@@ -459,6 +592,7 @@ class LotteryGenerator extends HTMLElement {
           <div class="mode-switch">
             <button class="mode-btn" type="button" data-view="lotto" data-label="viewLotto" aria-pressed="true">Lotto</button>
             <button class="mode-btn" type="button" data-view="dinner" data-label="viewDinner" aria-pressed="false">Dinner</button>
+            <button class="mode-btn" type="button" data-view="animal" data-label="viewAnimal" aria-pressed="false">Animal</button>
           </div>
           <div class="topbar-actions">
             <button class="theme-toggle" type="button" aria-pressed="false">Dark mode</button>
@@ -538,6 +672,29 @@ class LotteryGenerator extends HTMLElement {
             </form>
           </div>
         </section>
+        <section class="card" data-view="animal" hidden>
+          <div class="header">
+            <span class="badge badge--dinner">Animal Face</span>
+            <h1 class="animal-title">Animal Face Test</h1>
+            <p class="animal-subtitle">Upload a photo and see whether you look more like a puppy or a kitty.</p>
+          </div>
+          <div class="animal-shell">
+            <div class="animal-preview">
+              <div class="animal-placeholder">사진을 업로드하면 결과를 분석합니다.</div>
+            </div>
+            <div class="animal-actions">
+              <input class="file-input" type="file" accept="image/*" id="animal-file" />
+              <label class="upload-label" for="animal-file">사진 선택</label>
+              <button class="ghost" type="button" data-action="animal-analyze" data-label="animalAnalyze" disabled>분석하기</button>
+              <button class="ghost" type="button" data-action="animal-reset" data-label="animalReset">초기화</button>
+            </div>
+            <div class="animal-result">
+              <p class="animal-result-title">결과 대기 중</p>
+              <p class="animal-result-desc animal-subtitle">이미지를 선택하면 AI가 분석을 시작합니다.</p>
+              <div class="animal-bars"></div>
+            </div>
+          </div>
+        </section>
       </div>
     `;
 
@@ -587,6 +744,17 @@ class LotteryGenerator extends HTMLElement {
     this.partnerNameInput = this.shadowRoot.querySelector(".partner-name-input");
     this.partnerEmailInput = this.shadowRoot.querySelector(".partner-email-input");
     this.partnerMessageInput = this.shadowRoot.querySelector(".partner-message-input");
+    this.animalTitleEl = this.shadowRoot.querySelector(".animal-title");
+    this.animalSubtitleEl = this.shadowRoot.querySelector(".animal-subtitle");
+    this.animalResultTitleEl = this.shadowRoot.querySelector(".animal-result-title");
+    this.animalResultDescEl = this.shadowRoot.querySelector(".animal-result-desc");
+    this.animalPreviewEl = this.shadowRoot.querySelector(".animal-preview");
+    this.animalPlaceholderEl = this.shadowRoot.querySelector(".animal-placeholder");
+    this.animalUploadLabel = this.shadowRoot.querySelector(".upload-label");
+    this.animalFileInput = this.shadowRoot.querySelector("#animal-file");
+    this.animalAnalyzeButton = this.shadowRoot.querySelector("[data-action='animal-analyze']");
+    this.animalResetButton = this.shadowRoot.querySelector("[data-action='animal-reset']");
+    this.animalBarsEl = this.shadowRoot.querySelector(".animal-bars");
 
     this.actionButtons = Array.from(this.shadowRoot.querySelectorAll("[data-label]"));
 
@@ -594,6 +762,7 @@ class LotteryGenerator extends HTMLElement {
       en: {
         viewLotto: "Lotto",
         viewDinner: "Dinner",
+        viewAnimal: "Animal Test",
         title: "Lotto Number Generator",
         subtitle: "Generate six numbers between 1 and 45. Your recent draws are saved automatically.",
         generate: "Generate numbers",
@@ -631,11 +800,24 @@ class LotteryGenerator extends HTMLElement {
         partnerMessageLabel: "Message",
         partnerMessagePlaceholder: "Tell us about the partnership.",
         partnerSubmit: "Send inquiry",
+        animalTitle: "Animal Face Test",
+        animalSubtitle: "Upload a photo and see whether you look more like a puppy or a kitty.",
+        animalUpload: "Choose photo",
+        animalAnalyze: "Analyze",
+        animalReset: "Reset",
+        animalAnalyzing: "Analyzing...",
+        animalIdleTitle: "Waiting for photo",
+        animalIdleDesc: "Select an image to start the AI analysis.",
+        animalPlaceholder: "Upload a photo to preview it here.",
+        animalDogLabel: "Puppy face",
+        animalCatLabel: "Kitty face",
+        animalResultDetail: "{label} probability {percent}",
         timeLocale: "en-US",
       },
       ko: {
         viewLotto: "로또",
         viewDinner: "저녁추천",
+        viewAnimal: "동물상 테스트",
         title: "로또 번호 생성기",
         subtitle: "1부터 45까지 6개의 번호를 생성합니다. 최근 기록은 자동으로 저장됩니다.",
         generate: "번호 생성",
@@ -673,6 +855,18 @@ class LotteryGenerator extends HTMLElement {
         partnerMessageLabel: "문의 내용",
         partnerMessagePlaceholder: "제휴 내용을 간단히 적어주세요.",
         partnerSubmit: "문의 보내기",
+        animalTitle: "동물상 테스트",
+        animalSubtitle: "사진을 업로드하면 강아지상/고양이상을 분석합니다.",
+        animalUpload: "사진 선택",
+        animalAnalyze: "분석하기",
+        animalReset: "초기화",
+        animalAnalyzing: "분석 중...",
+        animalIdleTitle: "결과 대기 중",
+        animalIdleDesc: "이미지를 선택하면 AI가 분석을 시작합니다.",
+        animalPlaceholder: "사진을 업로드하면 결과를 분석합니다.",
+        animalDogLabel: "강아지상",
+        animalCatLabel: "고양이상",
+        animalResultDetail: "{label} 확률 {percent}",
         timeLocale: "ko-KR",
       },
     };
@@ -684,6 +878,9 @@ class LotteryGenerator extends HTMLElement {
     this.dinnerButton.addEventListener("click", () => this.recommendDinner(1));
     this.dinnerBatchButton.addEventListener("click", () => this.recommendDinner(3));
     this.copyDinnerButton.addEventListener("click", () => this.copyDinner());
+    this.animalFileInput.addEventListener("change", (event) => this.handleAnimalFile(event));
+    this.animalAnalyzeButton.addEventListener("click", () => this.analyzeAnimal());
+    this.animalResetButton.addEventListener("click", () => this.resetAnimal());
     this.themeToggle.addEventListener("click", () => this.toggleTheme());
     this.langToggle.addEventListener("click", () => this.toggleLanguage());
     this.viewButtons.forEach((button) => {
@@ -695,6 +892,7 @@ class LotteryGenerator extends HTMLElement {
 
     this.generateOnce();
     this.recommendDinner(1);
+    this.resetAnimal();
     this.switchView("lotto");
   }
 
@@ -931,8 +1129,117 @@ class LotteryGenerator extends HTMLElement {
     }, 1200);
   }
 
+  formatAnimalPercent(value) {
+    return `${Math.round(value * 100)}%`;
+  }
+
+  friendlyAnimalLabel(className) {
+    if (/dog|강아지|개/i.test(className)) return this.t("animalDogLabel");
+    if (/cat|고양이/i.test(className)) return this.t("animalCatLabel");
+    return className;
+  }
+
+  async loadAnimalModel() {
+    if (this.animalModel) return;
+    const modelURL = `${this.animalModelUrl}model.json`;
+    const metadataURL = `${this.animalModelUrl}metadata.json`;
+    this.animalModel = await tmImage.load(modelURL, metadataURL);
+  }
+
+  renderAnimalBars(predictions) {
+    this.animalBarsEl.innerHTML = "";
+    predictions.forEach((item) => {
+      const row = document.createElement("div");
+      row.className = "animal-bar";
+
+      const label = document.createElement("span");
+      label.textContent = item.className;
+
+      const track = document.createElement("div");
+      track.className = "animal-track";
+
+      const fill = document.createElement("div");
+      fill.className = "animal-fill";
+      fill.style.width = this.formatAnimalPercent(item.probability);
+
+      const value = document.createElement("span");
+      value.textContent = this.formatAnimalPercent(item.probability);
+
+      track.appendChild(fill);
+      row.append(label, track, value);
+      this.animalBarsEl.appendChild(row);
+    });
+  }
+
+  async analyzeAnimal() {
+    if (!this.animalImage) return;
+    this.animalAnalyzeButton.disabled = true;
+    this.animalResultTitleEl.textContent = this.t("animalAnalyzing");
+    this.animalResultDescEl.textContent = this.t("animalIdleDesc");
+
+    try {
+      await this.loadAnimalModel();
+      const prediction = await this.animalModel.predict(this.animalImage);
+      const sorted = [...prediction].sort((a, b) => b.probability - a.probability);
+      const top = sorted[0];
+      const label = this.friendlyAnimalLabel(top.className);
+      const percent = this.formatAnimalPercent(top.probability);
+      this.animalHasResult = true;
+      this.animalResultTitleEl.textContent = label;
+      this.animalResultDescEl.textContent = this.t("animalResultDetail")
+        .replace("{label}", label)
+        .replace("{percent}", percent);
+      this.renderAnimalBars(sorted);
+    } catch (error) {
+      console.error(error);
+      this.animalResultTitleEl.textContent = this.t("animalIdleTitle");
+      this.animalResultDescEl.textContent = this.t("animalIdleDesc");
+    } finally {
+      this.animalAnalyzeButton.disabled = false;
+    }
+  }
+
+  resetAnimal() {
+    this.animalImage = null;
+    this.animalHasResult = false;
+    this.animalFileInput.value = "";
+    this.animalAnalyzeButton.disabled = true;
+    this.animalPreviewEl.innerHTML = "";
+    const placeholder = document.createElement("div");
+    placeholder.className = "animal-placeholder";
+    placeholder.textContent = this.t("animalPlaceholder");
+    this.animalPreviewEl.appendChild(placeholder);
+    this.animalResultTitleEl.textContent = this.t("animalIdleTitle");
+    this.animalResultDescEl.textContent = this.t("animalIdleDesc");
+    this.animalBarsEl.innerHTML = "";
+  }
+
+  handleAnimalFile(event) {
+    const [file] = event.target.files;
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      this.resetAnimal();
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      this.animalPreviewEl.innerHTML = "";
+      const img = document.createElement("img");
+      img.src = reader.result;
+      img.alt = "animal preview";
+      this.animalPreviewEl.appendChild(img);
+      this.animalImage = img;
+      this.animalAnalyzeButton.disabled = false;
+      this.animalResultTitleEl.textContent = this.t("animalIdleTitle");
+      this.animalResultDescEl.textContent = this.t("animalIdleDesc");
+    };
+    reader.readAsDataURL(file);
+  }
+
   switchView(view) {
-    this.currentView = view === "dinner" ? "dinner" : "lotto";
+    const allowed = ["lotto", "dinner", "animal"];
+    this.currentView = allowed.includes(view) ? view : "lotto";
     this.cards.forEach((card) => {
       card.hidden = card.dataset.view !== this.currentView;
     });
@@ -1043,6 +1350,17 @@ class LotteryGenerator extends HTMLElement {
     this.partnerNameInput.placeholder = this.t("partnerNamePlaceholder");
     this.partnerEmailInput.placeholder = this.t("partnerEmailPlaceholder");
     this.partnerMessageInput.placeholder = this.t("partnerMessagePlaceholder");
+    this.animalTitleEl.textContent = this.t("animalTitle");
+    this.animalSubtitleEl.textContent = this.t("animalSubtitle");
+    this.animalUploadLabel.textContent = this.t("animalUpload");
+    const placeholder = this.animalPreviewEl.querySelector(".animal-placeholder");
+    if (placeholder) {
+      placeholder.textContent = this.t("animalPlaceholder");
+    }
+    if (!this.animalHasResult) {
+      this.animalResultTitleEl.textContent = this.t("animalIdleTitle");
+      this.animalResultDescEl.textContent = this.t("animalIdleDesc");
+    }
     this.actionButtons.forEach((button) => {
       const key = button.dataset.label;
       if (key) button.textContent = this.t(key);
